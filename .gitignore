@@ -31,9 +31,11 @@ htmlcov/
 # Environment
 .env
 .env.*
-.env.map
-.env.secret
+.map.env
+.secret.env
 !.env.example
+!.map.env.example
+!.secret.env.example
 
 # Logs
 *.log
