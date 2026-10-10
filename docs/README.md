@@ -32,7 +32,7 @@ processors to store in FalkorDB.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check (also verifies Kafka connectivity) |
-| `/api/v1/embed` | POST | Text embedding (used by engram fallback) |
+| `/api/v1/embed` | POST | Text embedding (used by the Arc lookup fallback) |
 | `/api/v1/embeddings/generate` | POST | Single-text embedding |
 | `/api/v1/embeddings/batch` | POST | Batch embedding |
 
