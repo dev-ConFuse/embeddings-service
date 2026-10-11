@@ -77,10 +77,10 @@ PORT=3011
 WORKERS=1
 
 # Model
-DEFAULT_EMBEDDING_MODEL=nvidia/embeddings/003
+DEFAULT_EMBEDDING_MODEL=nvidia/nemotron-3-embed-1b
 MAX_BATCH_SIZE=32
 MODEL_TIMEOUT_SECS=30
-NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com
 NVIDIA_NIM_API_KEY=your-api-key-here
 
 # Kafka

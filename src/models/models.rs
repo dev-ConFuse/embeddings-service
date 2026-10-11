@@ -67,8 +67,11 @@ impl NvidiaNimModel {
         })
     }
 
-    fn get_model_dimension(_model_name: &str) -> usize {
-        1024 // nv-embed-v1 uses 1024 dimensions
+    fn get_model_dimension(model_name: &str) -> usize {
+        match model_name {
+            "nvidia/nemotron-3-embed-1b" => 2048,
+            _ => 1024,
+        }
     }
 
     fn get_max_input_chars(_model_name: &str) -> usize {
@@ -194,5 +197,26 @@ pub enum ModelType {
 impl ModelType {
     pub fn from_config() -> Self {
         ModelType::NvidiaNim
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NvidiaNimModel;
+
+    #[test]
+    fn nemotron_embedding_dimension_matches_configured_model() {
+        assert_eq!(
+            NvidiaNimModel::get_model_dimension("nvidia/nemotron-3-embed-1b"),
+            2048
+        );
+    }
+
+    #[test]
+    fn other_models_keep_the_existing_dimension() {
+        assert_eq!(
+            NvidiaNimModel::get_model_dimension("nvidia/embeddings/003"),
+            1024
+        );
     }
 }

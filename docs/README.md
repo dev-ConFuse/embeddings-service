@@ -57,10 +57,10 @@ cargo run --release  # prod
 ```bash
 export HOST="0.0.0.0"
 export PORT="3011"
-export DEFAULT_EMBEDDING_MODEL="nvidia/embeddings/003"
+export DEFAULT_EMBEDDING_MODEL="nvidia/nemotron-3-embed-1b"
 export MAX_BATCH_SIZE="32"
 export MODEL_TIMEOUT_SECS="30"
-export NVIDIA_NIM_BASE_URL="https://integrate.api.nvidia.com/v1"
+export NVIDIA_NIM_BASE_URL="https://integrate.api.nvidia.com"
 export NVIDIA_NIM_API_KEY="your-api-key"      # or GEMINI_API_KEY / GEMINI_BASE_URL
 
 export KAFKA_BOOTSTRAP_SERVERS="your-kafka-bootstrap-servers"
