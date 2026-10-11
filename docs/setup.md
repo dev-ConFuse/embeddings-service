@@ -106,10 +106,11 @@ docker run -p 3011:3011 \
   embeddings-service
 ```
 
-## Cloud Deployment
+## Container Deployment (Docker / AKS)
 
-For Vercel/Render deployment:
-1. Set all required environment variables in the platform
-2. The health check endpoint (`/health`) will be used for monitoring
-3. Kafka connectivity will be verified before the worker starts
-4. Keep-alive mechanism prevents spin-down on free tiers
+Deployment is Dockerfile-only:
+1. Build the image from `Dockerfile`
+2. Supply all required environment variables at runtime (`.map.env` → AKS
+   ConfigMap, `.secret.env` → AKS Secret — see `.cline/rules/env-policy.md`)
+3. The health check endpoint (`/health`) is used for container probes
+4. Kafka connectivity will be verified before the worker starts

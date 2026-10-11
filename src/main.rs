@@ -84,28 +84,6 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // Keep-alive self-ping to prevent Render free tier spin-down.
-    // The embeddings-service is a Kafka consumer with no external HTTP traffic,
-    // so without this, Render spins the instance down and it never wakes up.
-    let keep_alive_port = port;
-    // Self-ping target host (this instance's loopback) — env config, not code.
-    let keep_alive_host = std::env::var("KEEP_ALIVE_HOST").map_err(|_| {
-        anyhow::anyhow!("Missing required environment variable: KEEP_ALIVE_HOST")
-    })?;
-    tokio::spawn(async move {
-        // Wait for the health server to be ready
-        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-        let client = reqwest::Client::new();
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(600)).await; // every 10 min
-            let url = format!("http://{}:{}/health", keep_alive_host, keep_alive_port);
-            match client.get(&url).send().await {
-                Ok(_) => tracing::debug!("Keep-alive self-ping OK"),
-                Err(e) => tracing::warn!("Keep-alive self-ping failed: {}", e),
-            }
-        }
-    });
-
     // Initialize service components
     let model_manager = Arc::new(ModelManager::new(config.clone()));
     
