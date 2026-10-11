@@ -19,7 +19,7 @@ mod kafka_impl {
     impl EventProducer {
         pub fn new(bootstrap_servers: &str) -> Result<Self> {
             let enable_idempotence = std::env::var("KAFKA_ENABLE_IDEMPOTENCE")
-                .unwrap_or_else(|_| "true".to_string())
+                .expect("Missing required environment variable: KAFKA_ENABLE_IDEMPOTENCE")
                 .to_lowercase() == "true";
 
             let mut config = ClientConfig::new();

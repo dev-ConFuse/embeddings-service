@@ -1,20 +1,29 @@
 //! Kafka Topic Definitions for ConFuse Platform
+//!
+//! Topic names are configuration, not code (env-only — see
+//! `.cline/rules/env-policy.md`); values come from `.map.env`.
 
 /// Kafka topic names used across the ConFuse platform
 pub struct Topics;
 
 impl Topics {
     // Chunk Processing Topics (unified-processor → embeddings-service)
-    pub const CHUNKS_RAW: &'static str = "chunks.raw";
+    pub fn chunks_raw() -> String {
+        std::env::var("KAFKA_CHUNKS_RAW_TOPIC")
+            .expect("Missing required environment variable: KAFKA_CHUNKS_RAW_TOPIC")
+    }
 
     // Embedding Topics (embeddings-service → unified-processor)
-    pub const EMBEDDING_GENERATED: &'static str = "embedding.generated";
+    pub fn embedding_generated() -> String {
+        std::env::var("KAFKA_EMBEDDING_GENERATED_TOPIC")
+            .expect("Missing required environment variable: KAFKA_EMBEDDING_GENERATED_TOPIC")
+    }
 }
 
 /// Get all active topic names for configuration
-pub fn get_all_topics() -> Vec<&'static str> {
+pub fn get_all_topics() -> Vec<String> {
     vec![
-        Topics::CHUNKS_RAW,
-        Topics::EMBEDDING_GENERATED,
+        Topics::chunks_raw(),
+        Topics::embedding_generated(),
     ]
 }

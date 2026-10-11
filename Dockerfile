@@ -86,11 +86,11 @@ RUN chown -R appuser:appuser /app && \
     chown -R appuser:appuser /app/logs
 USER appuser
 
-ENV PORT=3011
+# PORT is supplied at runtime via .map.env / .secret.env (see .cline/rules/env-policy.md)
 
 # Health check optimized for Render
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-3011}/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Expose port
 EXPOSE 3011

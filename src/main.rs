@@ -41,8 +41,9 @@ async fn main() -> anyhow::Result<()> {
     // Start a lightweight health check server so Render and Docker healthchecks pass
     // We start this BEFORE checking Kafka so that Render doesn't kill the deployment while we wait
     let port = config.server.port;
+    let bind_host = config.server.host.clone();
     tokio::spawn(async move {
-        let addr = format!("0.0.0.0:{}", port);
+        let addr = format!("{}:{}", bind_host, port);
         if let Ok(listener) = tokio::net::TcpListener::bind(&addr).await {
             tracing::info!("Health check server listening on {}", addr);
             loop {
@@ -87,13 +88,17 @@ async fn main() -> anyhow::Result<()> {
     // The embeddings-service is a Kafka consumer with no external HTTP traffic,
     // so without this, Render spins the instance down and it never wakes up.
     let keep_alive_port = port;
+    // Self-ping target host (this instance's loopback) — env config, not code.
+    let keep_alive_host = std::env::var("KEEP_ALIVE_HOST").map_err(|_| {
+        anyhow::anyhow!("Missing required environment variable: KEEP_ALIVE_HOST")
+    })?;
     tokio::spawn(async move {
         // Wait for the health server to be ready
         tokio::time::sleep(std::time::Duration::from_secs(30)).await;
         let client = reqwest::Client::new();
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(600)).await; // every 10 min
-            let url = format!("http://127.0.0.1:{}/health", keep_alive_port);
+            let url = format!("http://{}:{}/health", keep_alive_host, keep_alive_port);
             match client.get(&url).send().await {
                 Ok(_) => tracing::debug!("Keep-alive self-ping OK"),
                 Err(e) => tracing::warn!("Keep-alive self-ping failed: {}", e),
