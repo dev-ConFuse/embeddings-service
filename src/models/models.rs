@@ -41,9 +41,12 @@ impl NvidiaNimModel {
         
         let base_url = {
             let raw = config.models.gemini_base_url.clone();
-            if raw.is_empty() || raw.contains("google") {
-                "https://integrate.api.nvidia.com/v1/embeddings".to_string()
-            } else if raw.ends_with("/v1/embeddings") {
+            if raw.is_empty() {
+                return Err(EmbeddingError::GenerationError(
+                    "Missing required environment variable: NVIDIA_NIM_BASE_URL (or GEMINI_BASE_URL)".to_string(),
+                ));
+            }
+            if raw.ends_with("/v1/embeddings") {
                 raw
             } else {
                 // Ensure the path suffix is present
