@@ -50,10 +50,18 @@ async fn main() -> anyhow::Result<()> {
                 if let Ok((mut socket, _)) = listener.accept().await {
                     use tokio::io::{AsyncReadExt, AsyncWriteExt};
                     let mut buf = [0; 1024];
-                    let _ = socket.read(&mut buf).await;
-                    // JSON status payload — matches the platform health contract
-                    // (ConFuse-test-module assert_health_payload expects a status-ish key).
-                    let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"status\":\"healthy\"}").await;
+                    let n = socket.read(&mut buf).await.unwrap_or(0);
+                    let request = String::from_utf8_lossy(&buf[..n]);
+                    let path = request.split_whitespace().nth(1).unwrap_or("");
+                    // Only the health surface answers 200; everything else is 404.
+                    let response = if path == "/health" || path == "/" {
+                        // JSON status payload — matches the platform health contract
+                        // (ConFuse-test-module assert_health_payload expects a status-ish key).
+                        "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"status\":\"healthy\"}"
+                    } else {
+                        "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 32\r\n\r\n{\"error\":\"not found\",\"path\":\"?\"}"
+                    };
+                    let _ = socket.write_all(response.as_bytes()).await;
                     let _ = socket.shutdown().await;
                 }
             }
