@@ -3,7 +3,7 @@
 ## Prerequisites
 - Rust 1.70+
 - Apache Kafka cluster (Aiven or self-hosted)
-- NVIDIA NIM API key or Gemini API key
+- NVIDIA NIM API key
 - Access to Kafka bootstrap servers
 
 ## Environment Variables
@@ -21,20 +21,16 @@
 | `DEFAULT_EMBEDDING_MODEL` | Default embedding model | Yes | - |
 | `MAX_BATCH_SIZE` | Maximum batch size | No | "32" |
 | `MODEL_TIMEOUT_SECS` | Model timeout in seconds | No | "30" |
-| `NVIDIA_NIM_BASE_URL` | NVIDIA NIM API base URL | Yes* | - |
-| `NVIDIA_NIM_API_KEY` | NVIDIA NIM API key | Yes* | - |
-| `GEMINI_BASE_URL` | Gemini API base URL | Yes* | - |
-| `GEMINI_API_KEY` | Gemini API key | Yes* | - |
-
-*Either NVIDIA NIM or Gemini credentials are required
+| `NVIDIA_NIM_BASE_URL` | NVIDIA NIM API base URL | Yes | - |
+| `NVIDIA_NIM_API_KEY` | NVIDIA NIM API key | Yes | - |
 
 ### Kafka Configuration
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka bootstrap servers | Yes | - |
 | `EMBEDDINGS_SERVICE_KAFKA_GROUP_ID` | Consumer group ID | Yes | - |
-| `KAFKA_INPUT_TOPIC` | Input topic for chunk events | Yes | - |
-| `KAFKA_OUTPUT_TOPIC` | Output topic for embedding events | Yes | - |
+| `KAFKA_CHUNKS_RAW_TOPIC` | Input topic for chunk events | Yes | - |
+| `KAFKA_EMBEDDING_GENERATED_TOPIC` | Output topic for embedding events | Yes | - |
 | `KAFKA_ENABLED` | Enable Kafka processing | No | "true" |
 
 ## Local Development
@@ -86,8 +82,8 @@ NVIDIA_NIM_API_KEY=your-api-key-here
 # Kafka
 KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 EMBEDDINGS_SERVICE_KAFKA_GROUP_ID=embeddings-service-local
-KAFKA_INPUT_TOPIC=chunk-raw-events
-KAFKA_OUTPUT_TOPIC=embedding-generated-events
+KAFKA_CHUNKS_RAW_TOPIC=chunks.raw
+KAFKA_EMBEDDING_GENERATED_TOPIC=embedding.generated
 KAFKA_ENABLED=true
 ```
 

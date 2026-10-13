@@ -33,17 +33,16 @@ pub struct NvidiaNimModel {
 
 impl NvidiaNimModel {
     pub fn new(model_name: &str, config: &Config) -> Result<Self> {
-        // We'll map gemini config fields conceptually to NIM or assume env variables
-        let api_key = config.models.gemini_api_key.clone();
+        let api_key = config.models.nvidia_nim_api_key.clone();
         if api_key.is_empty() {
             tracing::warn!("API_KEY is not set. Embedding generation will fail.");
         }
         
         let base_url = {
-            let raw = config.models.gemini_base_url.clone();
+            let raw = config.models.nvidia_nim_base_url.clone();
             if raw.is_empty() {
                 return Err(EmbeddingError::GenerationError(
-                    "Missing required environment variable: NVIDIA_NIM_BASE_URL (or GEMINI_BASE_URL)".to_string(),
+                    "Missing required environment variable: NVIDIA_NIM_BASE_URL".to_string(),
                 ));
             }
             if raw.ends_with("/v1/embeddings") {
@@ -203,23 +202,6 @@ impl ModelType {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::NvidiaNimModel;
-
-    #[test]
-    fn nemotron_embedding_dimension_matches_configured_model() {
-        assert_eq!(
-            NvidiaNimModel::get_model_dimension("nvidia/nemotron-3-embed-1b"),
-            2048
-        );
-    }
-
-    #[test]
-    fn other_models_keep_the_existing_dimension() {
-        assert_eq!(
-            NvidiaNimModel::get_model_dimension("nvidia/embeddings/003"),
-            1024
-        );
-    }
-}
+// Dimension-mapping contract tests live in ConFuse-test-module/embeddings_service/
+// (testing.md: no test code in service folders). The mapping is live-verified:
+// nvidia/nemotron-3-embed-1b returns 2048-dim vectors from the NIM API.

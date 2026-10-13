@@ -6,9 +6,9 @@ This document describes the high-level architecture of `embeddings-service`, a K
 ## System Design
 ```mermaid
 graph TD
-    A[Document Processors] -->|Kafka: chunk-raw-events| B[embeddings-service]
-    B -->|NVIDIA NIM/Gemini API| C[Embedding Model]
-    B -->|Kafka: embedding-generated-events| D[unified-processor]
+    A[Document Processors] -->|Kafka: chunks.raw| B[embeddings-service]
+    B -->|NVIDIA NIM API| C[Embedding Model]
+    B -->|Kafka: embedding.generated| D[unified-processor]
     D -->|FalkorDB| E[(Vector Database)]
     F[Health Check Client] -->|HTTP: GET /health| B
 ```
@@ -24,7 +24,7 @@ graph TD
 
 ### 2. Model Manager (`src/models/`)
 - Manages embedding model lifecycle
-- Handles API communication with NVIDIA NIM/Gemini
+- Handles API communication with NVIDIA NIM
 - Implements batch processing for efficiency
 - Provides configuration-based model selection
 
@@ -51,7 +51,7 @@ graph TD
 2. **Consumption**: embeddings-service consumes events from input topic
 3. **Processing**: 
    - Extracts chunk content
-   - Calls embedding API (NVIDIA NIM/Gemini)
+   - Calls the NVIDIA NIM embeddings API
    - Generates vectors for each chunk
 4. **Publication**: Publishes embedding events to output topic
 5. **Storage**: unified-processor consumes and stores in FalkorDB

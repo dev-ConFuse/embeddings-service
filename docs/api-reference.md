@@ -13,7 +13,7 @@ Returns the health status of the service. This endpoint is used by deployment pl
 ## Kafka Events
 
 ### Input Event: SimplifiedChunkRawEvent
-Consumed from the Kafka input topic (configured via `KAFKA_INPUT_TOPIC`).
+Consumed from the Kafka input topic (configured via `KAFKA_CHUNKS_RAW_TOPIC`).
 
 **Fields:**
 - `headers`: Event metadata (event_id, correlation_id, timestamp)
@@ -28,7 +28,7 @@ Consumed from the Kafka input topic (configured via `KAFKA_INPUT_TOPIC`).
   - `language`: Language of the content
 
 ### Output Event: SimplifiedEmbeddingGeneratedEvent
-Published to the Kafka output topic (configured via `KAFKA_OUTPUT_TOPIC`).
+Published to the Kafka output topic (configured via `KAFKA_EMBEDDING_GENERATED_TOPIC`).
 
 **Fields:**
 - `headers`: Event metadata (event_id, correlation_id, timestamp)
@@ -57,12 +57,12 @@ Published to the Kafka output topic (configured via `KAFKA_OUTPUT_TOPIC`).
 - `DEFAULT_EMBEDDING_MODEL`: Default model to use (required)
 - `MAX_BATCH_SIZE`: Maximum batch size for processing (default: "32")
 - `MODEL_TIMEOUT_SECS`: Model timeout in seconds (default: "30")
-- `NVIDIA_NIM_BASE_URL` or `GEMINI_BASE_URL`: API base URL (required)
-- `NVIDIA_NIM_API_KEY` or `GEMINI_API_KEY`: API key (required)
+- `NVIDIA_NIM_BASE_URL`: NVIDIA NIM API base URL (required)
+- `NVIDIA_NIM_API_KEY`: NVIDIA NIM API key (required)
 
 ### Kafka Configuration
 - `KAFKA_BOOTSTRAP_SERVERS`: Kafka bootstrap servers
 - `EMBEDDINGS_SERVICE_KAFKA_GROUP_ID`: Kafka consumer group ID
-- `KAFKA_INPUT_TOPIC`: Input topic for chunk events
-- `KAFKA_OUTPUT_TOPIC`: Output topic for embedding events
+- `KAFKA_CHUNKS_RAW_TOPIC`: Input topic for chunk events
+- `KAFKA_EMBEDDING_GENERATED_TOPIC`: Output topic for embedding events
 - `KAFKA_ENABLED`: Enable/disable Kafka processing (default: "true")

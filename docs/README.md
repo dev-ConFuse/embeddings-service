@@ -9,11 +9,11 @@
 
 High-performance Kafka-based embedding generation service for the ConFuse
 platform. Consumes chunk events from Kafka, generates embeddings using
-NVIDIA NIM / Gemini API, and publishes results back to Kafka for the unified
+NVIDIA NIM, and publishes results back to Kafka for the unified
 processors to store in FalkorDB.
 
 - **Kafka-Based Architecture**: Event-driven processing via Apache Kafka
-- **NVIDIA NIM / Gemini API Embeddings**: Configurable model provider
+- **NVIDIA NIM Embeddings**: Configurable NVIDIA NIM model
 - **Batch Processing**: Efficient batch embedding generation
 - **Health Check Endpoint**: Simple HTTP health check for deployments
 - **Auto-Retry**: Resilient Kafka publishing with retry logic and DLQ fallback
@@ -21,10 +21,10 @@ processors to store in FalkorDB.
 
 ## Event Flow
 
-1. **Input**: consumes `SimplifiedChunkRawEvent` from `chunk-raw-events`
+1. **Input**: consumes `SimplifiedChunkRawEvent` from `chunks.raw`
 2. **Processing**: generates embeddings per chunk (batched)
 3. **Output**: publishes `SimplifiedEmbeddingGeneratedEvent` to
-   `embedding-generated-events`
+   `embedding.generated`
 4. **Storage**: unified processors consume output events and store in FalkorDB
 
 ## Key API surface
@@ -42,7 +42,7 @@ Full schemas: [api-reference.md](api-reference.md).
 
 ### Prerequisites
 
-- Rust 1.70+ · Apache Kafka · NVIDIA NIM or Gemini API key
+- Rust 1.70+ · Apache Kafka · NVIDIA NIM API key
 
 ### Installation & run
 
@@ -61,12 +61,12 @@ export DEFAULT_EMBEDDING_MODEL="nvidia/nemotron-3-embed-1b"
 export MAX_BATCH_SIZE="32"
 export MODEL_TIMEOUT_SECS="30"
 export NVIDIA_NIM_BASE_URL="https://integrate.api.nvidia.com"
-export NVIDIA_NIM_API_KEY="your-api-key"      # or GEMINI_API_KEY / GEMINI_BASE_URL
+export NVIDIA_NIM_API_KEY="your-api-key"
 
 export KAFKA_BOOTSTRAP_SERVERS="your-kafka-bootstrap-servers"
 export EMBEDDINGS_SERVICE_KAFKA_GROUP_ID="embeddings-service-group"
-export KAFKA_INPUT_TOPIC="chunk-raw-events"
-export KAFKA_OUTPUT_TOPIC="embedding-generated-events"
+export KAFKA_CHUNKS_RAW_TOPIC="chunks.raw"
+export KAFKA_EMBEDDING_GENERATED_TOPIC="embedding.generated"
 export KAFKA_ENABLED="true"
 ```
 

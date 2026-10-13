@@ -31,13 +31,12 @@ pub struct ModelConfig {
     pub default_model: String,
     pub max_batch_size: usize,
     pub timeout: Duration,
-    pub gemini_base_url: String,
-    pub gemini_api_key: String,
+    pub nvidia_nim_base_url: String,
+    pub nvidia_nim_api_key: String,
 }
 
 /// All configuration is env-only (`.map.env` / `.secret.env`, see
-/// `.cline/rules/env-policy.md`) — required vars fail fast at boot, optional
-/// pairs (NVIDIA/GEMINI) fall back to the sibling env var, never a literal.
+/// `.cline/rules/env-policy.md`) — required vars fail fast at boot.
 impl Config {
     fn required(name: &str) -> crate::Result<String> {
         std::env::var(name).map_err(|_| {
@@ -63,11 +62,10 @@ impl Config {
         }
     }
 
-    /// First present env var of the given names (both are env — no literal fallback).
     fn required_any(names: &[&str]) -> crate::Result<String> {
         for name in names {
-            if let Ok(v) = std::env::var(name) {
-                return Ok(v);
+            if let Ok(value) = std::env::var(name) {
+                return Ok(value);
             }
         }
         Err(crate::error::EmbeddingError::ConfigError(format!(
@@ -89,14 +87,14 @@ impl Config {
                 default_model: Self::required("DEFAULT_EMBEDDING_MODEL")?,
                 max_batch_size: Self::required_parse("MAX_BATCH_SIZE")?,
                 timeout: Duration::from_secs(Self::required_parse("MODEL_TIMEOUT_SECS")?),
-                gemini_base_url: Self::required_any(&["NVIDIA_NIM_BASE_URL", "GEMINI_BASE_URL"])?,
-                gemini_api_key: Self::required_any(&["NVIDIA_NIM_API_KEY", "GEMINI_API_KEY"])?,
+                nvidia_nim_base_url: Self::required("NVIDIA_NIM_BASE_URL")?,
+                nvidia_nim_api_key: Self::required("NVIDIA_NIM_API_KEY")?,
             },
             kafka: KafkaConfig {
                 bootstrap_servers: Self::required("KAFKA_BOOTSTRAP_SERVERS")?,
                 group_id: Self::required("EMBEDDINGS_SERVICE_KAFKA_GROUP_ID")?,
-                input_topic: Self::required("KAFKA_INPUT_TOPIC")?,
-                output_topic: Self::required("KAFKA_OUTPUT_TOPIC")?,
+                input_topic: Self::required("KAFKA_CHUNKS_RAW_TOPIC")?,
+                output_topic: Self::required("KAFKA_EMBEDDING_GENERATED_TOPIC")?,
                 enabled: Self::required_bool("KAFKA_ENABLED")?,
             },
         })

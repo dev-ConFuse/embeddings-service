@@ -40,7 +40,7 @@ impl StreamingGenerator {
         model_name: String,
         batch_size: usize,
     ) -> impl Stream<Item = Result<Vec<Vec<f32>>>> {
-        let model = self.model_manager.ensure_model_loaded(&model_name).await.unwrap();
+        let model = self.model_manager.ensure_model_loaded(&model_name).await.expect("model must load before generation");
         
         texts
             .chunks(batch_size)

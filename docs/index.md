@@ -12,7 +12,7 @@ Welcome to the documentation for `embeddings-service`, a Kafka-based embedding g
 
 The embeddings service is a Rust-based microservice that:
 1. Consumes chunk events from Kafka
-2. Generates embeddings using NVIDIA NIM/Gemini API
+2. Generates embeddings using NVIDIA NIM
 3. Publishes embedding events back to Kafka for storage
 
 See the [Setup & Configuration](./setup.md) guide for deployment instructions.
