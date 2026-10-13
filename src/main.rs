@@ -51,7 +51,9 @@ async fn main() -> anyhow::Result<()> {
                     use tokio::io::{AsyncReadExt, AsyncWriteExt};
                     let mut buf = [0; 1024];
                     let _ = socket.read(&mut buf).await;
-                    let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK").await;
+                    // JSON status payload — matches the platform health contract
+                    // (ConFuse-test-module assert_health_payload expects a status-ish key).
+                    let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"status\":\"healthy\"}").await;
                     let _ = socket.shutdown().await;
                 }
             }
