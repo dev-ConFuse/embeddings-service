@@ -18,21 +18,43 @@ async fn main() -> anyhow::Result<()> {
         tracing::error!("Panic occurred: {}", panic_info);
     }));
 
-    // Load environment variables from .env
-    tracing::info!("Loading environment variables...");
+    // Load environment variables (env policy: .map.env → .secret.env → .env.local)
     dotenvy::from_filename_override(".map.env").ok();
     dotenvy::from_filename_override(".secret.env").ok();
     dotenvy::from_filename_override(".env.local").ok();
-    tracing::info!("Environment variables loaded");
-    // Initialize tracing with file appender
+
+    // Initialize structured tracing (stdout + daily JSON file sink).
+    // Level/filter and stdout format come from LOG_LEVEL / LOG_FORMAT —
+    // no baked-in fallback (see .cline/rules/env-policy.md).
+    let filter = std::env::var("RUST_LOG")
+        .or_else(|_| std::env::var("LOG_LEVEL"))
+        .unwrap_or_else(|_| {
+            panic!("Missing required environment variable: LOG_LEVEL (or RUST_LOG)")
+        });
+    let format = std::env::var("LOG_FORMAT")
+        .unwrap_or_else(|_| panic!("Missing required environment variable: LOG_FORMAT"));
     let file_appender = tracing_appender::rolling::daily("logs", "embeddings-service.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
-        .with(tracing_subscriber::fmt::layer().with_writer(non_blocking).json())
-        .init();
+    if format == "json" {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::new(filter.clone()))
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_writer(std::io::stdout)
+                    .json(),
+            )
+            .with(tracing_subscriber::fmt::layer().with_writer(non_blocking).json())
+            .init();
+    } else {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::new(filter))
+            .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
+            .with(tracing_subscriber::fmt::layer().with_writer(non_blocking).json())
+            .init();
+    }
+
+    tracing::info!(service = "embeddings-service", "Starting service");
 
     // Load configuration
     let config = Config::from_env()?;
