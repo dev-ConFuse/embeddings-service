@@ -6,9 +6,11 @@ This document outlines the API endpoints and interfaces exposed by `embeddings-s
 ## HTTP Endpoints
 
 ### `GET /health`
-Returns the health status of the service. This endpoint is used by deployment platforms (Render, Docker) for health checks.
-- **Response**: `200 OK` with body "OK"
-- **Purpose**: Health check for deployment monitoring
+Returns the health status of the service. This endpoint is used by deployment
+platforms and internal callers for health checks.
+- **Response**: `200 OK` with a JSON status payload
+- **Purpose**: Health check only; embedding generation is not exposed over HTTP.
+- **Other paths**: Return `404 Not Found`.
 
 ## Kafka Events
 

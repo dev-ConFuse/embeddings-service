@@ -15,7 +15,7 @@ processors to store in FalkorDB.
 - **Kafka-Based Architecture**: Event-driven processing via Apache Kafka
 - **NVIDIA NIM Embeddings**: Configurable NVIDIA NIM model
 - **Batch Processing**: Efficient batch embedding generation
-- **Health Check Endpoint**: Simple HTTP health check for deployments
+- **Health Check Endpoint**: Simple HTTP health check for deployments; embedding generation is not exposed as a synchronous HTTP API
 - **Auto-Retry**: Resilient Kafka publishing with retry logic and DLQ fallback
 - **Keep-Alive**: Self-ping mechanism to prevent cloud provider spin-down
 
@@ -31,12 +31,10 @@ processors to store in FalkorDB.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Health check (also verifies Kafka connectivity) |
-| `/api/v1/embed` | POST | Text embedding (used by the Arc lookup fallback) |
-| `/api/v1/embeddings/generate` | POST | Single-text embedding |
-| `/api/v1/embeddings/batch` | POST | Batch embedding |
+| `/health` | GET | Liveness check only; Kafka connectivity is checked separately during startup |
 
-Full schemas: [api-reference.md](api-reference.md).
+Embedding generation is consumed asynchronously through Kafka; see the
+[Kafka event contract](api-reference.md).
 
 ## How to run the microservice
 
