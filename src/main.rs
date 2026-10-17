@@ -10,6 +10,28 @@ use embeddings_service::{
     models::ModelManager,
 };
 
+/// Redact secret-looking query values so access logs never leak credentials.
+fn sanitize_query(query: &str) -> String {
+    if query.is_empty() {
+        return String::new();
+    }
+    query
+        .split('&')
+        .map(|pair| {
+            let key = pair.split('=').next().unwrap_or("");
+            if ["token", "key", "secret", "password", "auth"]
+                .iter()
+                .any(|needle| key.to_ascii_lowercase().contains(needle))
+            {
+                format!("{key}=[redacted]")
+            } else {
+                pair.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,9 +64,19 @@ async fn main() -> anyhow::Result<()> {
             .with(
                 tracing_subscriber::fmt::layer()
                     .with_writer(std::io::stdout)
-                    .json(),
+                    .json()
+                    .flatten_event(true)
+                    .with_current_span(true)
+                    .with_span_list(false),
             )
-            .with(tracing_subscriber::fmt::layer().with_writer(non_blocking).json())
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_writer(non_blocking)
+                    .json()
+                    .flatten_event(true)
+                    .with_current_span(true)
+                    .with_span_list(false),
+            )
             .init();
     } else {
         tracing_subscriber::registry()
@@ -69,22 +101,117 @@ async fn main() -> anyhow::Result<()> {
         if let Ok(listener) = tokio::net::TcpListener::bind(&addr).await {
             tracing::info!("Health check server listening on {}", addr);
             loop {
-                if let Ok((mut socket, _)) = listener.accept().await {
+                if let Ok((mut socket, peer)) = listener.accept().await {
                     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+                    let start = std::time::Instant::now();
                     let mut buf = [0; 1024];
                     let n = socket.read(&mut buf).await.unwrap_or(0);
-                    let request = String::from_utf8_lossy(&buf[..n]);
-                    let path = request.split_whitespace().nth(1).unwrap_or("");
+                    let request = String::from_utf8_lossy(&buf[..n]).to_string();
+
+                    // Minimal request-line + header parse so every HTTP request
+                    // gets one access record per the observability contract.
+                    let mut lines = request.lines();
+                    let request_line = lines.next().unwrap_or_default();
+                    let mut parts = request_line.split_whitespace();
+                    let method = parts.next().unwrap_or_default().to_string();
+                    let target = parts.next().unwrap_or_default().to_string();
+                    let (path, raw_query) = match target.split_once('?') {
+                        Some((p, q)) => (p.to_string(), q.to_string()),
+                        None => (target, String::new()),
+                    };
+                    let mut correlation_id = String::new();
+                    let mut user_agent = String::new();
+                    for line in lines {
+                        if let Some((name, value)) = line.split_once(':') {
+                            let name = name.trim().to_ascii_lowercase();
+                            let value = value.trim().to_string();
+                            match name.as_str() {
+                                "x-correlation-id" | "x-request-id" if correlation_id.is_empty() => {
+                                    correlation_id = value
+                                }
+                                "user-agent" if user_agent.is_empty() => user_agent = value,
+                                _ => {}
+                            }
+                        }
+                    }
+                    if correlation_id.is_empty() {
+                        correlation_id = uuid::Uuid::new_v4().to_string();
+                    }
+                    let query = sanitize_query(&raw_query);
+                    let client = peer.ip().to_string();
+                    tracing::debug!(
+                        correlation_id = %correlation_id,
+                        method = %method,
+                        path = %path,
+                        query = %query,
+                        client = %client,
+                        user_agent = %user_agent,
+                        "request started"
+                    );
                     // Only the health surface answers 200; everything else is 404.
-                    let response = if path == "/health" || path == "/" {
+                    let (status, reason, body) = if path == "/health" || path == "/" {
                         // JSON status payload — matches the platform health contract
                         // (ConFuse-test-module assert_health_payload expects a status-ish key).
-                        "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 20\r\n\r\n{\"status\":\"healthy\"}"
+                        (200u16, "OK", "{\"status\":\"healthy\"}")
                     } else {
-                        "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: 32\r\n\r\n{\"error\":\"not found\",\"path\":\"?\"}"
+                        (404u16, "Not Found", "{\"error\":\"not found\",\"path\":\"?\"}")
                     };
+                    let response = format!(
+                        "HTTP/1.1 {status} {reason}\r\nConnection: close\r\nContent-Type: application/json\r\nx-correlation-id: {correlation_id}\r\nContent-Length: {}\r\n\r\n{body}",
+                        body.len()
+                    );
                     let _ = socket.write_all(response.as_bytes()).await;
                     let _ = socket.shutdown().await;
+
+                    // One access record per request, level by outcome.
+                    let duration_ms = start.elapsed().as_millis() as u64;
+                    let outcome = if status < 300 {
+                        "success"
+                    } else if status < 500 {
+                        "client_error"
+                    } else {
+                        "server_error"
+                    };
+                    if status < 300 {
+                        tracing::info!(
+                            correlation_id = %correlation_id,
+                            method = %method,
+                            path = %path,
+                            query = %query,
+                            client = %client,
+                            user_agent = %user_agent,
+                            status,
+                            duration_ms,
+                            outcome,
+                            "request completed"
+                        );
+                    } else if status < 500 {
+                        tracing::warn!(
+                            correlation_id = %correlation_id,
+                            method = %method,
+                            path = %path,
+                            query = %query,
+                            client = %client,
+                            user_agent = %user_agent,
+                            status,
+                            duration_ms,
+                            outcome,
+                            "request failed"
+                        );
+                    } else {
+                        tracing::error!(
+                            correlation_id = %correlation_id,
+                            method = %method,
+                            path = %path,
+                            query = %query,
+                            client = %client,
+                            user_agent = %user_agent,
+                            status,
+                            duration_ms,
+                            outcome,
+                            "request failed"
+                        );
+                    }
                 }
             }
         } else {
