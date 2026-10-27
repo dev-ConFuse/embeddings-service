@@ -26,10 +26,24 @@ impl EventConsumer {
             .set("enable.auto.commit", "true")
             .set("auto.offset.reset", "earliest")
             .set("enable.auto.offset.store", "false")
-            .set("session.timeout.ms", "10000")
-            .set("heartbeat.interval.ms", "3000")
-            .set("max.poll.interval.ms", "300000")
-            .set("auto.commit.interval.ms", "5000");
+            // Session / heartbeat were 10000/3000 — far too tight for the
+            // WSL -> VPN -> Aiven path. Heartbeats routinely took >10s in flight
+            // ("Timed out HeartbeatRequest in flight (after 10508ms)"), so the
+            // broker evicted the consumer and it re-subscribed in a loop without
+            // ever finishing `chunks.raw`. That is why `embedding.generated` was
+            // never produced and chunks ended up without vectors. These values
+            // match the ones proven stable in doc-uni-proc/src/graph/consumer.rs.
+            .set("session.timeout.ms", "30000")
+            .set("heartbeat.interval.ms", "10000")
+            .set("max.poll.interval.ms", "1800000")
+            .set("auto.commit.interval.ms", "5000")
+            // Keep the TCP connection alive so Aiven doesn't drop idle
+            // connections (this is what caused BrokerTransportFailure after
+            // quiet periods).
+            .set("socket.keepalive.enable", "true")
+            .set("socket.timeout.ms", "60000")
+            // Return promptly when topics are idle instead of holding fetches open.
+            .set("fetch.wait.max.ms", "500");
 
         if let Ok(protocol) = std::env::var("KAFKA_SECURITY_PROTOCOL") {
             config.set("security.protocol", protocol);
