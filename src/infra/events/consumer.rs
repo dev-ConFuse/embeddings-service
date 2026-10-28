@@ -33,15 +33,24 @@ impl EventConsumer {
             // ever finishing `chunks.raw`. That is why `embedding.generated` was
             // never produced and chunks ended up without vectors. These values
             // match the ones proven stable in doc-uni-proc/src/graph/consumer.rs.
-            .set("session.timeout.ms", "30000")
-            .set("heartbeat.interval.ms", "10000")
+            .set("session.timeout.ms", "45000")
+            .set("heartbeat.interval.ms", "15000")
             .set("max.poll.interval.ms", "1800000")
             .set("auto.commit.interval.ms", "5000")
             // Keep the TCP connection alive so Aiven doesn't drop idle
             // connections (this is what caused BrokerTransportFailure after
             // quiet periods).
             .set("socket.keepalive.enable", "true")
-            .set("socket.timeout.ms", "60000")
+            .set("socket.timeout.ms", "120000")
+            // TCP+TLS setup budget. Explicit rather than relying on the library default,
+            // and allowed to grow on retry so a slow first handshake still succeeds.
+            .set("socket.connection.setup.timeout.ms", "120000")
+            .set("socket.connection.setup.timeout.max.ms", "300000")
+            // Reconnect with exponential backoff: a struggling broker needs breathing room,
+            // not a reconnect storm.
+            .set("reconnect.backoff.ms", "1000")
+            .set("reconnect.backoff.max.ms", "30000")
+            .set("retry.backoff.ms", "500")
             // Return promptly when topics are idle instead of holding fetches open.
             .set("fetch.wait.max.ms", "500");
 
