@@ -102,6 +102,11 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("Health check server listening on {}", addr);
             loop {
                 if let Ok((mut socket, peer)) = listener.accept().await {
+                    // Handle each connection in its own task. Previously the whole
+                    // request was processed inline in the accept loop, so a single
+                    // slow or idle client blocked socket.read() and queued every
+                    // other health check behind it - observed as /health taking 10s.
+                    tokio::spawn(async move {
                     use tokio::io::{AsyncReadExt, AsyncWriteExt};
                     let start = std::time::Instant::now();
                     let mut buf = [0; 1024];
@@ -212,6 +217,7 @@ async fn main() -> anyhow::Result<()> {
                             "request failed"
                         );
                     }
+                    }); // end per-connection task
                 }
             }
         } else {
